@@ -1,0 +1,23 @@
+# Compilados de C/C++
+src/*.o
+src/gemm_scalar
+src/gemm_sve
+src/gemm_omp
+src/false_sharing
+
+# Salidas de gem5 (Ignorar todo excepto el README)
+results/*
+!results/README.md
+!results/*.csv
+
+# Python
+__pycache__/
+*.pyc
+
+# Reporte (LaTeX)
+report/*.aux
+report/*.log
+report/*.out
+report/*.fls
+report/*.fdb_latexmk
+report/*.synctex.gz
