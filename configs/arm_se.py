@@ -12,26 +12,37 @@ from gem5.isas import ISA
 from gem5.resources.resource import BinaryResource
 from gem5.simulate.simulator import Simulator
 
+CPUS = {"timing": CPUTypes.TIMING, "minor": CPUTypes.MINOR, "o3": CPUTypes.O3}
+
 p = argparse.ArgumentParser()
 p.add_argument("--bin", required=True)
 p.add_argument("--args", nargs="*", default=[])
+p.add_argument("--cpu", choices=list(CPUS), default="o3")
 p.add_argument("--width", type=int, default=8)
 p.add_argument("--rob", type=int, default=192)
 p.add_argument("--vl", type=int, default=4)
 p.add_argument("--l1", default="32KiB")
 p.add_argument("--l2", default="512KiB")
+p.add_argument("--comsize", type=int, default=0, help=">0: fija forwardComSize y backComSize")
+p.add_argument("--wb", type=int, default=8, help="wbWidth fijo (con wbWidth=ancho el O3 de v26 da panic de TimeBuffer)") # Esto después de probar con ancho variable.
 a = p.parse_args()
 
-proc = SimpleProcessor(cpu_type=CPUTypes.O3, isa=ISA.ARM, num_cores=1, clk_freq="2GHz")
+proc = SimpleProcessor(cpu_type=CPUS[a.cpu], isa=ISA.ARM, num_cores=1, clk_freq="2GHz")
 for c in proc.get_cores():
     cpu = c.core
-    for attr in ("fetchWidth", "decodeWidth", "renameWidth", "dispatchWidth",
-                 "issueWidth", "wbWidth", "commitWidth", "squashWidth"):
-        if hasattr(cpu, attr):
-            setattr(cpu, attr, a.width)
-    cpu.numROBEntries = a.rob
+    if a.cpu == "o3":               # ancho y ROB solo aplican al O3
+        for attr in ("fetchWidth", "decodeWidth", "renameWidth", "dispatchWidth",
+                     "issueWidth", "commitWidth", "squashWidth"):
+            if hasattr(cpu, attr):
+                setattr(cpu, attr, a.width)
+        cpu.numROBEntries = a.rob
+        if a.comsize:
+            for attr in ("forwardComSize", "backComSize"):
+                if hasattr(cpu, attr):
+                    setattr(cpu, attr, a.comsize)
+        if a.wb:    
+            cpu.wbWidth = a.wb
     cpu.isa[0].sve_vl_se = a.vl
-
 board = SimpleBoard(
     clk_freq="2GHz",
     processor=proc,
