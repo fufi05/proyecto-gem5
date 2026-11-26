@@ -18,6 +18,8 @@ $CC -O2 -static -fno-tree-vectorize -march=armv8-a -DGEM5 -Isrc src/gemm_scalar.
 # SVE
 $CC -O2 -static -march=armv8-a+sve src/gemm_sve.c -o bin/qemu/gemm_sve
 $CC -O2 -static -march=armv8-a+sve -DGEM5 -Isrc src/gemm_sve.c $M5 -o bin/gemm_sve
+# E5: microbenchmark con estadísticas delimitadas por la región de interés.
+$CC -std=c11 -O2 -static -march=armv8-a -pthread -DGEM5_ROI src/false_sharing.c "${M5[@]}" -o bin/false_sharing
 # Auxiliares
 $CC -O2 -static src/hello.c -o bin/hello
 $CC -O2 -static -march=armv8-a+sve src/sve_probe.c -o bin/sve_probe
