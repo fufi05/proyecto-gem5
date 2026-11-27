@@ -16,24 +16,19 @@ HERE = Path(__file__).resolve().parent
 BEGIN = "---------- Begin Simulation Statistics ----------"
 END = "---------- End Simulation Statistics   ----------"
 RUBY = "system.ruby."
-MESI = "MESI_Two_Level"
+L1_STATS = RUBY + "L1Cache_Controller."
+NETWORK_COUNTS = RUBY + "network.msg_count."
+DIRTY_STATES = {
+    "MESI_Two_Level": ("M",),
+    "MOESI_CMP_directory": ("M", "MM", "O"),
+}
 FIELDS = {
-    "invalidaciones": RUBY + "L1Cache_Controller.Inv::total",
-    "mensajes_coherencia": RUBY + "delayHistogram::samples",
     "latencia_media_fallo": RUBY + "m_missLatencyHistSeqr::mean",
-    "traspasos_linea_modificada": RUBY + "L1Cache_Controller.M.Fwd_GETX::total",
     "fallos_ruby": RUBY + "m_missLatencyHistSeqr::samples",
     "fallos_escritura_ruby": RUBY + "RequestType.ST.miss_latency_hist_seqr::samples",
     "sim_ticks": "simTicks",
     "instrucciones_simuladas": "simInsts",
 }
-SOURCE_FIELDS = {
-    "invalidaciones": "estadistica_invalidaciones",
-    "mensajes_coherencia": "estadistica_mensajes",
-    "latencia_media_fallo": "estadistica_latencia",
-    "traspasos_linea_modificada": "estadistica_traspasos",
-}
-MESI_ONLY = {"invalidaciones", "traspasos_linea_modificada"}
 CPU_SECTION = re.compile(r"system\.cpu\d*")
 BUILD_TRUE = {"true", "1", "y"}
 
@@ -105,6 +100,7 @@ def review_build(build_path, command_path, expected_protocol):
 
 def review_evidence(directory, row):
     pending = []
+    network_type = ""
     log = directory / "simulacion.log"
     version = ""
     if log.is_file():
@@ -129,7 +125,7 @@ def review_evidence(directory, row):
     else:
         pending.extend(("simulacion.log", "versión de gem5"))
 
-    config_path = directory / "config.ini"
+config_path = directory / "config.ini"
     if config_path.is_file():
         config = ConfigParser(interpolation=None)
         with config_path.open(encoding="utf-8") as stream:
@@ -137,6 +133,7 @@ def review_evidence(directory, row):
         cpus = [section for section in config.sections() if CPU_SECTION.fullmatch(section)]
         if not config.has_section("system.ruby"):
             raise ValueError(f"{config_path}: falta system.ruby")
+        network_type = config.get("system.ruby.network", "type", fallback="")
         if config.get("system", "cache_line_size", fallback="") != row["linea_cache_bytes"]:
             raise ValueError(f"{config_path}: tamaño de línea distinto al del plan")
         if len(cpus) != int(row["nucleos"]):
@@ -159,7 +156,39 @@ def review_evidence(directory, row):
     if row["benchmark"] == "gemm_paralelo":
         pending.append("validación numérica de GEMM")
 
-    return version, pending
+    return version, pending, network_type
+
+
+def coherence_metrics(stats, protocol, network_type):
+    values = {
+        "invalidaciones": "",
+        "estadistica_invalidaciones": "",
+        "mensajes_coherencia": "",
+        "estadistica_mensajes": "",
+        "traspasos_linea_modificada": "",
+        "estadistica_traspasos": "",
+    }
+    l1_events = any(key.startswith(L1_STATS) and key.endswith("::total") for key in stats)
+    if l1_events and protocol in DIRTY_STATES:
+        # SLICC omite los contadores de eventos y transiciones con valor cero.
+        inv_key = L1_STATS + "Inv::total"
+        values["invalidaciones"] = metric(stats, inv_key) if inv_key in stats else "0"
+        values["estadistica_invalidaciones"] = inv_key
+
+        # Estos estados pierden la copia modificada al aceptar un GETX ajeno.
+        keys = [L1_STATS + f"{state}.Fwd_GETX::total" for state in DIRTY_STATES[protocol]]
+        counts = [metric(stats, key) if key in stats else "0" for key in keys]
+        if all(counts):
+            values["traspasos_linea_modificada"] = str(sum(map(int, counts)))
+            values["estadistica_traspasos"] = " + ".join(keys)
+
+    if network_type == "SimpleNetwork":
+        # Solo los totales de red por clase. Cada uno ya agrega los conmutadores.
+        counts = [metric(stats, key) for key in stats if key.startswith(NETWORK_COUNTS)]
+        if counts and all(counts):
+            values["mensajes_coherencia"] = str(sum(map(int, counts)))
+            values["estadistica_mensajes"] = "suma de " + NETWORK_COUNTS + "* (SimpleNetwork)"
+    return values
 
 
 def register(row, stats_path, evidence_dir, requested_block):
@@ -169,33 +198,31 @@ def register(row, stats_path, evidence_dir, requested_block):
     if cores and len(cores) != int(row["nucleos"]):
         raise ValueError(f"{stats_path}: cantidad de CPU distinta a la del plan")
 
-    values = {}
-    for field, key in FIELDS.items():
-        value = ""
-        if field not in MESI_ONLY or row["protocolo"] == MESI:
-            value = metric(stats, key, integer=field != "latencia_media_fallo")
-        values[field] = value
-        if field in SOURCE_FIELDS:
-            values[SOURCE_FIELDS[field]] = key if value else ""
+    version, pending, network_type = review_evidence(evidence_dir, row)
+    values = {
+        field: metric(stats, key, integer=field != "latencia_media_fallo")
+        for field, key in FIELDS.items()
+    }
+    values.update(coherence_metrics(stats, row["protocolo"], network_type))
+    values["estadistica_latencia"] = FIELDS["latencia_media_fallo"] if values["latencia_media_fallo"] else ""
 
     freq = metric(stats, "simFreq")
     if not values["sim_ticks"] or not freq or int(freq) == 0:
         raise ValueError(f"{stats_path}: faltan simTicks o una simFreq positiva")
     milliseconds = Decimal(values["sim_ticks"]) * 1000 / Decimal(freq)
-    version, pending = review_evidence(evidence_dir, row)
-    notes = [f"Bloque {block}. Mensajes observados por Ruby."]
-    if row["protocolo"] != MESI:
-        notes.append("Pendiente identificar contadores equivalentes de invalidación para MOESI.")
-    missing = [field for field, value in values.items()
-               if field in FIELDS and not value and
-               (field not in MESI_ONLY or row["protocolo"] == MESI)]
+    notes = [f"Bloque {block}. Se registran los eventos explícitos Inv de L1."]
+    if values["mensajes_coherencia"]:
+        notes.append("SimpleNetwork cuenta cada paso de un mensaje por un conmutador.")
+    if values["invalidaciones"] == "0" and L1_STATS + "Inv::total" not in stats:
+        notes.append("SLICC omite el contador Inv cuando vale cero.")
+    required_fields = (*FIELDS, "invalidaciones", "mensajes_coherencia", "traspasos_linea_modificada")
+    missing = [field for field in required_fields if not values[field]]
     if missing:
         notes.append("Sin dato en el bloque: " + ", ".join(missing) + ".")
     if pending:
         notes.append("Evidencia pendiente: " + ", ".join(pending) + ".")
     values.update(
-        estado="stats_registradas" if pending or missing or row["protocolo"] != MESI
-        else "stats_y_evidencia_revisadas",
+        estado="stats_registradas" if pending or missing else "stats_y_evidencia_revisadas",
         tiempo_simulado_ms=format(milliseconds, ".7f"),
         bloque_stats=str(block),
         archivo_evidencia=stats_path.name,
@@ -259,7 +286,3 @@ def main():
         write_csv(args.salida, columns, rows)
     except (OSError, ValueError, InvalidOperation, KeyError, ConfigError) as exc:
         parser.exit(1, f"Error: {exc}\n")
-
-
-if __name__ == "__main__":
-    main()
