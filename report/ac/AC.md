@@ -54,7 +54,11 @@ _Por completar._
 
 #### Jorge
 
-_Por completar._
+1. **Configurar gem5 para ARM con Ruby.** Esta es mi primera prioridad porque necesito verificar que el microbenchmark funcione con los dos protocolos antes de ejecutar el barrido completo. Para cerrarla, ejecutaré una prueba con 2 núcleos en `MESI_Two_Level` y otra en `MOESI_CMP_directory`. Confirmaré el protocolo en la configuración y comprobaré que ambas pruebas generen un `stats.txt` válido. **Fecha objetivo propuesta:** 26 de noviembre de 2026.
+
+2. **Diseñar y ejecutar un barrido controlado de falso compartido.** Para medir el efecto del relleno, compararé `pad` y `nopad` con el mismo protocolo y número de núcleos. Para cerrarla, ejecutaré las 12 combinaciones de 2 protocolos, 2 variantes y 3 cantidades de núcleos (2, 4 y 8). Mantendré 100 000 incrementos por hilo y verificaré el valor final de cada contador. La evidencia será la matriz de corridas y los registros de ejecución. **Fecha objetivo propuesta:** 27 de noviembre de 2026.
+
+3. **Extraer e interpretar las métricas de la región de interés.** Necesito distinguir qué mide cada estadística para explicar el efecto del falso compartido. Para cerrarla, extraeré las invalidaciones explícitas de L1, los pasos de mensajes por los conmutadores de Ruby y la latencia media de fallo. Generaré un CSV con las 12 corridas y un gráfico comparativo. Usaré los traspasos de líneas modificadas para explicar por qué el contador de invalidaciones explícitas solo refleja parte del tráfico de coherencia. **Fecha objetivo propuesta:** 27 de noviembre de 2026.
 
 ## AC2
 ### Felipe 
@@ -73,3 +77,16 @@ _Por completar._
 - Notas de versión de gem5 (sección de mejoras de la ISA Arm): https://gem5.googlesource.com/public/gem5/+show/refs/heads/master/RELEASE-NOTES.md
 - Documentación de Arm sobre SME: https://developer.arm.com/documentation/ddi0616/latest
 - Fu, Manley y Alian, "gem5 Co-Pilot: AI Assistant Agent for Architectural Design Space Exploration", 2025: https://arxiv.org/abs/2510.19577
+
+  ### Jorge
+
+| # | Tecnología emergente | Por qué importa para el proyecto | Recurso de aprendizaje | ¿Cómo lo usaré? |
+|:-:|---|---|---|---|
+| 1 | Extensión matricial de Arm (SME) | Permite acumular productos externos de vectores en bloques de la matriz de salida. Esto ayuda a entender cómo se puede acelerar GEMM dentro de un núcleo. En el E5 estudié otro aspecto del rendimiento: el tráfico de coherencia entre núcleos. | Tutorial introductorio de Arm sobre SME, con ejemplos de productos externos y almacenamiento matricial ZA. | Seguiré un ejemplo del tutorial para mostrar cómo dos vectores actualizan un bloque de la matriz de salida. Compararé ese procedimiento con el bucle interno de GEMM para identificar dónde se acumulan los resultados parciales. |
+| 2 | Extensión vectorial de RISC-V (RVV) | Permite procesar una fila de GEMM en tramos de longitud variable. Compararla con Arm SVE ayuda a entender cómo se procesan los elementos restantes cuando la fila no cabe en un número exacto de vectores. | Especificación de la extensión V 1.0 y guía de intrínsecos vectoriales en C de RISC-V International. | Escribiré pseudocódigo para actualizar una fila de GEMM por tramos con `vsetvli`. Usaré una matriz pequeña que deje un tramo parcial y compararé el resultado con el de una implementación escalar. |
+
+**Fuentes**
+
+- [Arm, *Scalable Matrix Extension (SME) Introduction*](https://developer.arm.com/community/arm-community-blogs/b/architectures-and-processors-blog/posts/arm-scalable-matrix-extension-introduction)
+- [RISC-V International, *V Standard Extension for Vector Operations*, versión 1.0](https://docs.riscv.org/reference/isa/unpriv/v-st-ext)
+- [RISC-V International, *RISC-V Vector C Intrinsic Specification*](https://docs.riscv.org/reference/vector-c-intrinsics/rvv-intrinsic-spec.html)
