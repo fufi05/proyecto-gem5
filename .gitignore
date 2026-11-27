@@ -14,10 +14,15 @@ results/*
 __pycache__/
 *.pyc
 
-# Reporte (LaTeX)
-report/*.aux
-report/*.log
-report/*.out
-report/*.fls
-report/*.fdb_latexmk
-report/*.synctex.gz
+# Archivos temporales de LaTeX en report/ y sus subcarpetas
+report/**/*.aux
+report/**/*.bbl
+report/**/*.blg
+report/**/*.fdb_latexmk
+report/**/*.fls
+report/**/*.lof
+report/**/*.log
+report/**/*.lot
+report/**/*.out
+report/**/*.synctex.gz
+report/**/*.toc

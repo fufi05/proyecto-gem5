@@ -1,0 +1,30 @@
+\documentclass[12pt,letterpaper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[spanish]{babel}
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{cite}
+
+% Define la carpeta raíz de imágenes
+\graphicspath{{figuras/}}
+
+\title{Título del Informe}
+\author{Integrante 1 \and Integrante 2 \and Integrante 3}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+\tableofcontents
+\newpage
+
+% Ensamblaje de secciones
+\input{secciones/01_introduccion}
+\input{secciones/02_marco_teorico}
+\input{secciones/03_metodologia}
+\input{secciones/04_resultados}
+
+\bibliographystyle{IEEEtran}
+\bibliography{referencias}
+
+\end{document}
