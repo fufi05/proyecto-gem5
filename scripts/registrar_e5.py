@@ -1,0 +1,236 @@
+#!/usr/bin/env python3
+"""Registra estadísticas y revisa la evidencia de corridas de E5."""
+
+import argparse
+from configparser import ConfigParser, Error as ConfigError
+import csv
+from decimal import Decimal, InvalidOperation
+from pathlib import Path
+import re
+import sys
+from tempfile import NamedTemporaryFile
+
+
+HERE = Path(__file__).resolve().parent
+BEGIN = "---------- Begin Simulation Statistics ----------"
+END = "---------- End Simulation Statistics   ----------"
+RUBY = "system.ruby."
+MESI = "MESI_Two_Level"
+FIELDS = {
+    "invalidaciones": RUBY + "L1Cache_Controller.Inv::total",
+    "mensajes_coherencia": RUBY + "delayHistogram::samples",
+    "latencia_media_fallo": RUBY + "m_missLatencyHistSeqr::mean",
+    "traspasos_linea_modificada": RUBY + "L1Cache_Controller.M.Fwd_GETX::total",
+    "fallos_ruby": RUBY + "m_missLatencyHistSeqr::samples",
+    "fallos_escritura_ruby": RUBY + "RequestType.ST.miss_latency_hist_seqr::samples",
+    "sim_ticks": "simTicks",
+    "instrucciones_simuladas": "simInsts",
+}
+SOURCE_FIELDS = {
+    "invalidaciones": "estadistica_invalidaciones",
+    "mensajes_coherencia": "estadistica_mensajes",
+    "latencia_media_fallo": "estadistica_latencia",
+    "traspasos_linea_modificada": "estadistica_traspasos",
+}
+MESI_ONLY = {"invalidaciones", "traspasos_linea_modificada"}
+CPU_SECTION = re.compile(r"system\.cpu\d*")
+
+
+def read_stats(path, number):
+    blocks = path.read_text(encoding="utf-8").split(BEGIN)[1:]
+    if not blocks:
+        raise ValueError(f"{path}: no contiene bloques de estadísticas")
+    if number is None and len(blocks) > 1:
+        raise ValueError(f"{path}: hay {len(blocks)} bloques. Indique --bloque según la corrida")
+    number = number or 1
+    if not 1 <= number <= len(blocks) or END not in blocks[number - 1]:
+        raise ValueError(f"{path}: el bloque {number} está ausente o incompleto")
+    raw, _, _ = blocks[number - 1].partition(END)
+    stats = {}
+    for line in raw.splitlines():
+        columns = line.split(maxsplit=2)
+        if len(columns) >= 2:
+            stats[columns[0]] = columns[1]
+    if not any(key.startswith(RUBY) for key in stats):
+        raise ValueError(f"{path}: el bloque {number} carece de estadísticas Ruby")
+    return stats, number
+
+
+def metric(stats, key, integer=True):
+    value = stats.get(key, "")
+    if value.lower() in {"", "nan", "-nan", "+nan"}:
+        return ""
+    number = Decimal(value)
+    if not number.is_finite() or number < 0 or (integer and number != int(number)):
+        raise ValueError(f"valor inválido para {key}: {value}")
+    return str(int(number)) if integer else value
+
+
+def review_evidence(directory, row):
+    pending = []
+    log = directory / "simulacion.log"
+    version = ""
+    if log.is_file():
+        content = log.read_text(encoding="utf-8", errors="replace")
+        match = re.search(r"^gem5 version\s+(\S+)", content, re.M)
+        if match:
+            version = match[1]
+        else:
+            pending.append("versión de gem5")
+        if row["benchmark"] == "false_sharing":
+            variant = row["variante"]
+            threads = row["hilos"]
+            count = row["incrementos_por_hilo"]
+            expected = {
+                f"{variant} hilos={threads} esperado={count}",
+                "Verificación: OK",
+            }
+            expected.update(f"contador[{i}]={count}" for i in range(int(threads)))
+            lines = set(content.splitlines())
+            if not expected <= lines or "Verificación: ERROR" in lines:
+                raise ValueError(f"{log}: no valida los contadores esperados de esta corrida")
+    else:
+        pending.extend(("simulacion.log", "versión de gem5"))
+
+    config_path = directory / "config.ini"
+    if config_path.is_file():
+        config = ConfigParser(interpolation=None)
+        with config_path.open(encoding="utf-8") as stream:
+            config.read_file(stream)
+        cpus = [section for section in config.sections() if CPU_SECTION.fullmatch(section)]
+        if not config.has_section("system.ruby"):
+            raise ValueError(f"{config_path}: falta system.ruby")
+        if config.get("system", "cache_line_size", fallback="") != row["linea_cache_bytes"]:
+            raise ValueError(f"{config_path}: tamaño de línea distinto al del plan")
+        if len(cpus) != int(row["nucleos"]):
+            raise ValueError(f"{config_path}: cantidad de CPU distinta a la del plan")
+        expected_model = row["modelo_cpu"]
+        model_names = {expected_model, "Arm" + expected_model, "Base" + expected_model}
+        for cpu in cpus:
+            model = config.get(cpu, "type", fallback="")
+            if model not in model_names:
+                raise ValueError(f"{config_path}: modelo de CPU inesperado en {cpu}: {model}")
+    else:
+        pending.append("config.ini")
+
+    build_path = directory / "gem5_build_info.txt"
+    if build_path.is_file():
+        build = build_path.read_text(encoding="utf-8")
+        protocol = re.search(r"^\s*PROTOCOL\s*=\s*(\S+)", build, re.M)
+        arm = re.search(r"^\s*USE_ARM_ISA\s*=\s*(\S+)", build, re.M)
+        if not protocol or not arm:
+            pending.append("confirmar ARM y protocolo en gem5_build_info.txt")
+        elif protocol[1] != row["protocolo"] or arm[1].lower() not in {"true", "1", "y"}:
+            raise ValueError(f"{build_path}: ISA o protocolo distinto al del plan")
+    else:
+        pending.append("gem5_build_info.txt")
+
+    if not (directory / "comando.txt").is_file():
+        pending.append("comando.txt")
+    if row["benchmark"] == "gemm_paralelo":
+        pending.append("validación numérica de GEMM")
+
+    return version, pending
+
+
+def register(row, stats_path, evidence_dir, requested_block):
+    stats, block = read_stats(stats_path, requested_block)
+    cores = {key.removesuffix(".numCycles") for key in stats if key.endswith(".numCycles")
+             and CPU_SECTION.fullmatch(key.removesuffix(".numCycles"))}
+    if cores and len(cores) != int(row["nucleos"]):
+        raise ValueError(f"{stats_path}: cantidad de CPU distinta a la del plan")
+
+    values = {}
+    for field, key in FIELDS.items():
+        value = ""
+        if field not in MESI_ONLY or row["protocolo"] == MESI:
+            value = metric(stats, key, integer=field != "latencia_media_fallo")
+        values[field] = value
+        if field in SOURCE_FIELDS:
+            values[SOURCE_FIELDS[field]] = key if value else ""
+
+    freq = metric(stats, "simFreq")
+    if not values["sim_ticks"] or not freq or int(freq) == 0:
+        raise ValueError(f"{stats_path}: faltan simTicks o una simFreq positiva")
+    milliseconds = Decimal(values["sim_ticks"]) * 1000 / Decimal(freq)
+    version, pending = review_evidence(evidence_dir, row)
+    notes = [f"Bloque {block}. Mensajes observados por Ruby."]
+    if row["protocolo"] != MESI:
+        notes.append("Pendiente identificar contadores equivalentes de invalidación para MOESI.")
+    missing = [field for field, value in values.items()
+               if field in FIELDS and not value and
+               (field not in MESI_ONLY or row["protocolo"] == MESI)]
+    if missing:
+        notes.append("Sin dato en el bloque: " + ", ".join(missing) + ".")
+    if pending:
+        notes.append("Evidencia pendiente: " + ", ".join(pending) + ".")
+    values.update(
+        estado="stats_registradas" if pending or missing or row["protocolo"] != MESI
+        else "stats_y_evidencia_revisadas",
+        tiempo_simulado_ms=format(milliseconds, ".7f"),
+        bloque_stats=str(block),
+        archivo_evidencia=stats_path.name,
+        unidad_latencia="ciclos del secuenciador Ruby" if values["latencia_media_fallo"] else "",
+        version_gem5=version,
+        observaciones=" ".join(notes),
+    )
+    return values
+
+
+def write_csv(path, columns, rows):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with NamedTemporaryFile(mode="w", encoding="utf-8", newline="", dir=path.parent,
+                            delete=False) as stream:
+        temp = Path(stream.name)
+        try:
+            writer = csv.DictWriter(stream, fieldnames=columns, lineterminator="\n")
+            writer.writeheader()
+            writer.writerows(rows)
+            stream.flush()
+            temp.replace(path)
+        finally:
+            temp.unlink(missing_ok=True)
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--csv", type=Path, default=HERE / "corridas_E5.csv")
+    parser.add_argument("--trabajo", type=Path, default=HERE.parent,
+                        help="Raíz del proyecto para resolver las rutas stats_txt")
+    parser.add_argument("--corrida", action="append", required=True, help="ID del CSV, repetible")
+    parser.add_argument("--stats", type=Path, help="Archivo alternativo para una sola corrida")
+    parser.add_argument("--evidencia", type=Path, help="Carpeta de evidencia para una sola corrida")
+    parser.add_argument("--bloque", type=int, help="Número del bloque, empezando en 1")
+    parser.add_argument("--salida", type=Path, required=True, help="Ruta de la copia actualizada")
+    args = parser.parse_args()
+    if len(args.corrida) != 1 and (args.stats or args.evidencia):
+        parser.error("--stats y --evidencia requieren una sola --corrida")
+    if args.bloque is not None and args.bloque < 1:
+        parser.error("--bloque debe ser positivo")
+    if args.salida.resolve() == args.csv.resolve():
+        parser.error("--salida debe ser distinta del CSV de entrada")
+
+    try:
+        with args.csv.open(encoding="utf-8-sig", newline="") as stream:
+            reader = csv.DictReader(stream)
+            rows = list(reader)
+            columns = list(reader.fieldnames or [])
+        by_id = {row["corrida_id"]: row for row in rows}
+        if len(by_id) != len(rows):
+            raise ValueError("Hay IDs de corrida repetidos en el CSV")
+        for run_id in dict.fromkeys(args.corrida):
+            if run_id not in by_id:
+                raise ValueError(f"Corrida desconocida: {run_id}")
+            row = by_id[run_id]
+            stats_path = args.stats or args.trabajo / row["stats_txt"]
+            values = register(row, stats_path, args.evidencia or stats_path.parent, args.bloque)
+            row.update(values)
+            columns.extend(field for field in values if field not in columns)
+            print(f"{run_id}: {row['estado']}. {row['observaciones']}", file=sys.stderr)
+        write_csv(args.salida, columns, rows)
+    except (OSError, ValueError, InvalidOperation, KeyError, ConfigError) as exc:
+        parser.exit(1, f"Error: {exc}\n")
+
+
+if __name__ == "__main__":
+    main()
