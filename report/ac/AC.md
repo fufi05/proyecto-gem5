@@ -54,11 +54,11 @@ _Por completar._
 
 #### Jorge
 
-1. **Configurar gem5 para ARM con Ruby.** Esta es mi primera prioridad porque necesito verificar que el microbenchmark funcione con los dos protocolos antes de ejecutar el barrido completo. Para cerrarla, ejecutaré una prueba con 2 núcleos en `MESI_Two_Level` y otra en `MOESI_CMP_directory`. Confirmaré el protocolo en la configuración y comprobaré que ambas pruebas generen un `stats.txt` válido. **Fecha objetivo propuesta:** 26 de noviembre de 2026.
+1. **Configurar gem5 para ARM con Ruby.** Esta es mi primera prioridad porque necesito verificar que el microbenchmark funcione con los dos protocolos antes de ejecutar el barrido completo. Para cerrarla, ejecutaré una prueba con 2 núcleos en `MESI_Two_Level` y otra en `MOESI_CMP_directory`. Confirmaré el protocolo en la configuración y comprobaré que ambas pruebas generen un `stats.txt` válido.
 
-2. **Diseñar y ejecutar un barrido controlado de falso compartido.** Para medir el efecto del relleno, compararé `pad` y `nopad` con el mismo protocolo y número de núcleos. Para cerrarla, ejecutaré las 12 combinaciones de 2 protocolos, 2 variantes y 3 cantidades de núcleos (2, 4 y 8). Mantendré 100 000 incrementos por hilo y verificaré el valor final de cada contador. La evidencia será la matriz de corridas y los registros de ejecución. **Fecha objetivo propuesta:** 27 de noviembre de 2026.
+2. **Diseñar y ejecutar un barrido controlado de falso compartido.** Para medir el efecto del relleno, compararé `pad` y `nopad` con el mismo protocolo y número de núcleos. Para cerrarla, ejecutaré las 12 combinaciones de 2 protocolos, 2 variantes y 3 cantidades de núcleos (2, 4 y 8). Mantendré 100 000 incrementos por hilo y verificaré el valor final de cada contador. La evidencia será la matriz de corridas y los registros de ejecución. 
 
-3. **Extraer e interpretar las métricas de la región de interés.** Necesito distinguir qué mide cada estadística para explicar el efecto del falso compartido. Para cerrarla, extraeré las invalidaciones explícitas de L1, los pasos de mensajes por los conmutadores de Ruby y la latencia media de fallo. Generaré un CSV con las 12 corridas y un gráfico comparativo. Usaré los traspasos de líneas modificadas para explicar por qué el contador de invalidaciones explícitas solo refleja parte del tráfico de coherencia. **Fecha objetivo propuesta:** 27 de noviembre de 2026.
+3. **Extraer e interpretar las métricas de la región de interés.** Necesito distinguir qué mide cada estadística para explicar el efecto del falso compartido. Para cerrarla, extraeré las invalidaciones explícitas de L1, los pasos de mensajes por los conmutadores de Ruby y la latencia media de fallo. Generaré un CSV con las 12 corridas y un gráfico comparativo. Usaré los traspasos de líneas modificadas para explicar por qué el contador de invalidaciones explícitas solo refleja parte del tráfico de coherencia.
 
 ## AC2
 ### Felipe 
