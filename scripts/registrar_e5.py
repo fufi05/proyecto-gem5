@@ -33,10 +33,12 @@ CPU_SECTION = re.compile(r"system\.cpu\d*")
 BUILD_TRUE = {"true", "1", "y"}
 
 
-def read_stats(path, number):
+def read_stats(path, number, *, require_false_sharing_roi=False):
     blocks = path.read_text(encoding="utf-8").split(BEGIN)[1:]
     if not blocks:
         raise ValueError(f"{path}: no contiene bloques de estadísticas")
+    if require_false_sharing_roi and (len(blocks) != 2 or any(END not in block for block in blocks)):
+        raise ValueError(f"{path}: se esperaban los dos bloques completos de false_sharing (ROI y final)")
     if number is None and len(blocks) > 1:
         raise ValueError(f"{path}: hay {len(blocks)} bloques. Indique --bloque según la corrida")
     number = number or 1
@@ -125,7 +127,7 @@ def review_evidence(directory, row):
     else:
         pending.extend(("simulacion.log", "versión de gem5"))
 
-config_path = directory / "config.ini"
+    config_path = directory / "config.ini"
     if config_path.is_file():
         config = ConfigParser(interpolation=None)
         with config_path.open(encoding="utf-8") as stream:
@@ -191,8 +193,9 @@ def coherence_metrics(stats, protocol, network_type):
     return values
 
 
-def register(row, stats_path, evidence_dir, requested_block):
-    stats, block = read_stats(stats_path, requested_block)
+def register(row, stats_path, evidence_dir, requested_block, *, require_false_sharing_roi=False):
+    stats, block = read_stats(stats_path, requested_block,
+                              require_false_sharing_roi=require_false_sharing_roi)
     cores = {key.removesuffix(".numCycles") for key in stats if key.endswith(".numCycles")
              and CPU_SECTION.fullmatch(key.removesuffix(".numCycles"))}
     if cores and len(cores) != int(row["nucleos"]):
@@ -286,3 +289,7 @@ def main():
         write_csv(args.salida, columns, rows)
     except (OSError, ValueError, InvalidOperation, KeyError, ConfigError) as exc:
         parser.exit(1, f"Error: {exc}\n")
+
+
+if __name__ == "__main__":
+    main()
