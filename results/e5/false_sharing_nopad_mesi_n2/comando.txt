@@ -1,0 +1,1 @@
+/home/jorge/gem5/build_mesi/gem5.opt -d /home/jorge/proyecto-gem5/results/e5/false_sharing_nopad_mesi_n2 /home/jorge/gem5/configs/deprecated/example/se.py -n 2 --ruby --cpu-type=TimingSimpleCPU --cacheline_size 64 -c /home/jorge/proyecto-gem5/bin/false_sharing -o '2 nopad 100000'

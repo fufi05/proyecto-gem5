@@ -1,0 +1,79 @@
+warn: The se.py script is deprecated. It will be removed in future releases of  gem5.
+warn: Directory_Controller is deprecated. Use MESI_Two_Level_Directory_Controller instead
+Global frequency set at 1000000000000 ticks per second
+src/mem/dram_interface.cc:691: warn: DRAM device capacity (8192 Mbytes) does not match the address range assigned (512 Mbytes)
+src/base/statistics.hh:279: warn: One of the stats is a legacy stat. Legacy stat is a stat that does not belong to any statistics::Group. Legacy stat is deprecated.
+src/base/statistics.hh:279: warn: One of the stats is a legacy stat. Legacy stat is a stat that does not belong to any statistics::Group. Legacy stat is deprecated.
+src/base/socket.cc:249: info: system.remote_gdb: Listening for connections on port 7000
+gem5 Simulator System.  https://www.gem5.org
+gem5 is copyrighted software; use the --copyright option for details.
+
+gem5 version 26.0.0.0
+gem5 compiled Nov 26 2026 20:09:52
+gem5 started Nov 26 2026 20:49:08
+gem5 executing on DESKTOP-NHU7N79, pid 34118
+command line: /home/jorge/gem5/build_mesi/gem5.opt -d /home/jorge/proyecto-gem5/results/e5/false_sharing_pad_mesi_n8 /home/jorge/gem5/configs/deprecated/example/se.py -n 8 --ruby --cpu-type=TimingSimpleCPU --cacheline_size 64 -c /home/jorge/proyecto-gem5/bin/false_sharing -o '8 pad 100000'
+
+**** REAL SIMULATION ****
+src/mem/ruby/system/Sequencer.cc:750: warn: Replacement policy updates recently became the responsibility of SLICC state machines. Make sure to setMRU() near callbacks in .sm files!
+src/sim/syscall_emul.cc:86: warn: ignoring syscall set_robust_list(...)
+src/sim/mem_state.cc:443: info: Increasing stack size by one page.
+src/arch/arm/insts/pseudo.cc:174: warn: 	instruction 'bti' unimplemented
+src/sim/syscall_emul.cc:86: warn: ignoring syscall mprotect(...)
+src/sim/syscall_emul.cc:86: warn: ignoring syscall rt_sigaction(...)
+src/sim/syscall_emul.cc:97: warn: ignoring syscall rt_sigprocmask(...)
+      (further warnings will be suppressed)
+src/sim/syscall_emul.cc:86: warn: ignoring syscall mprotect(...)
+src/sim/power_state.cc:105: warn: PowerState: Already in the requested power state, request ignored
+src/arch/arm/isa.cc:1421: warn: User mode does not have SPSR
+src/arch/arm/isa.cc:1421: warn: User mode does not have SPSR
+src/sim/syscall_emul.cc:86: warn: ignoring syscall mprotect(...)
+src/arch/arm/isa.cc:1421: warn: User mode does not have SPSR
+src/arch/arm/isa.cc:1421: warn: User mode does not have SPSR
+src/sim/syscall_emul.cc:86: warn: ignoring syscall mprotect(...)
+src/arch/arm/isa.cc:1421: warn: User mode does not have SPSR
+src/arch/arm/isa.cc:1421: warn: User mode does not have SPSR
+src/sim/syscall_emul.cc:86: warn: ignoring syscall mprotect(...)
+src/sim/syscall_emul.cc:86: warn: ignoring syscall set_robust_list(...)
+src/sim/syscall_emul.cc:86: warn: ignoring syscall set_robust_list(...)
+src/arch/arm/insts/pseudo.cc:174: warn: 	instruction 'bti' unimplemented
+src/arch/arm/insts/pseudo.cc:174: warn: 	instruction 'bti' unimplemented
+src/sim/syscall_emul.cc:86: warn: ignoring syscall set_robust_list(...)
+src/arch/arm/isa.cc:1421: warn: User mode does not have SPSR
+src/arch/arm/isa.cc:1421: warn: User mode does not have SPSR
+src/arch/arm/insts/pseudo.cc:174: warn: 	instruction 'bti' unimplemented
+src/sim/syscall_emul.cc:86: warn: ignoring syscall mprotect(...)
+src/arch/arm/isa.cc:1421: warn: User mode does not have SPSR
+src/arch/arm/isa.cc:1421: warn: User mode does not have SPSR
+src/sim/syscall_emul.cc:86: warn: ignoring syscall set_robust_list(...)
+src/arch/arm/insts/pseudo.cc:174: warn: 	instruction 'bti' unimplemented
+src/sim/syscall_emul.cc:86: warn: ignoring syscall mprotect(...)
+src/arch/arm/isa.cc:1421: warn: User mode does not have SPSR
+src/arch/arm/isa.cc:1421: warn: User mode does not have SPSR
+src/sim/syscall_emul.cc:86: warn: ignoring syscall set_robust_list(...)
+src/arch/arm/insts/pseudo.cc:174: warn: 	instruction 'bti' unimplemented
+src/sim/syscall_emul.cc:86: warn: ignoring syscall mprotect(...)
+src/sim/syscall_emul.cc:86: warn: ignoring syscall set_robust_list(...)
+src/arch/arm/isa.cc:1421: warn: User mode does not have SPSR
+src/arch/arm/isa.cc:1421: warn: User mode does not have SPSR
+src/arch/arm/insts/pseudo.cc:174: warn: 	instruction 'bti' unimplemented
+src/sim/syscall_emul.cc:86: warn: ignoring syscall set_robust_list(...)
+src/arch/arm/insts/pseudo.cc:174: warn: 	instruction 'bti' unimplemented
+src/sim/syscall_emul.cc:86: warn: ignoring syscall madvise(...)
+src/sim/syscall_emul.cc:86: warn: ignoring syscall madvise(...)
+src/sim/syscall_emul.cc:86: warn: ignoring syscall madvise(...)
+src/sim/syscall_emul.cc:86: warn: ignoring syscall madvise(...)
+src/sim/syscall_emul.cc:86: warn: ignoring syscall madvise(...)
+src/sim/syscall_emul.cc:86: warn: ignoring syscall madvise(...)
+src/sim/syscall_emul.cc:86: warn: ignoring syscall madvise(...)
+pad hilos=8 esperado=100000
+contador[0]=100000
+contador[1]=100000
+contador[2]=100000
+contador[3]=100000
+contador[4]=100000
+contador[5]=100000
+contador[6]=100000
+contador[7]=100000
+Verificación: OK
+Exiting @ tick 1264393500 because exiting with last active thread context
