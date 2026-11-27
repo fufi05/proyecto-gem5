@@ -4,7 +4,7 @@
 - Integrante 1: Felipe Sánchez Segura (2023083272)
 - Integrante 2: Anthony Villalta
 - Integrante 3: Saul Quesada
-- Integrante 4: Jorge Pérez
+- Integrante 4: Jorge Pérez Jimenez (2021061955)
 
 ## AC1
 ### Matriz de competencias
@@ -13,18 +13,18 @@ Cada integrante se califica de forma individual con la escala al final. En "Evid
 
 | Competencia | Desempeño observable | Felipe (0–3) | Anthony (0–3) | Saul (0–3) | Jorge (0–3) | Evidencia |
 |---|---|:-:|:-:|:-:|:-:|---|
-| Comprensión del problema y modelo de costo | Identifica la pregunta del proyecto (mejor combinación de núcleos, ancho, VL y protocolo con presupuesto de 32 unidades), la fórmula de costo y el rol de E1–E6. | 1 | | | | |
-| Fundamentos de arquitectura | Explica cómo el ancho de emisión, el ROB, la IQ, la longitud vectorial SVE y la coherencia (MESI/MOESI) afectan el rendimiento de GEMM. | 2 | | | | |
-| Configuración de gem5 | Configura gem5 en modo SE para ARMv8 + SVE: tipo de CPU (TimingSimple, Minor, O3), ancho, ROB, VL, jerarquía clásica o Ruby y número de núcleos. | 1 | | | | |
-| Preparación del entorno | Compila gem5 (contenedor Docker con MESI_Two_Level y MOESI_CMP_directory) y cross-compila binarios AArch64 estáticos. | 1 | | | | |
-| Ejecución de simulaciones | Ejecuta los barridos de E1–E5 y verifica que cada corrida termine con `stats.txt` válido. | 0 | | | | |
-| Programación de cargas de trabajo (GEMM y SVE) | Escribe y valida GEMM (N = 64 y 128) escalar y con SVE, delimita la ROI con `m5_reset_stats()` y `m5_dump_stats()`, y prepara el microbenchmark de falso compartido. | 0 | | | | |
-| Diseño experimental | Varía una variable a la vez (ancho, ROB, VL, núcleos, protocolo, relleno), justifica el barrido y respeta el límite de costo en E6. | 0 | | | | |
-| Recolección de resultados | Extrae de `stats.txt` solo las métricas de la ROI y las organiza en CSV por experimento. | 0 | | | | |
-| Análisis de métricas | Interpreta IPC, CPI, speedup, eficiencia, fallos de caché e invalidaciones, y explica las tendencias con conceptos de arquitectura y la ley de Amdahl. | 0 | | | | |
-| Diagnóstico y resolución de problemas | Identifica y corrige fallos típicos: errores de build, instrucciones SVE no soportadas, estadísticas contaminadas por la inicialización, errores de Ruby. |0 | | | | |
-| Reproducibilidad y gestión del trabajo | Mantiene repositorio Git, scripts y README de modo que un comando regenere CSV y gráficos de cada experimento. |2 | | | | |
-| Colaboración y comunicación técnica | Lidera su experimento (E2–E5), cumple acuerdos, documenta en la bitácora y expone con dominio su parte del video. |2| | | | |
+| Comprensión del problema y modelo de costo | Identifica la pregunta del proyecto (mejor combinación de núcleos, ancho, VL y protocolo con presupuesto de 32 unidades), la fórmula de costo y el rol de E1–E6. | 1 | | | 1 | |
+| Fundamentos de arquitectura | Explica cómo el ancho de emisión, el ROB, la IQ, la longitud vectorial SVE y la coherencia (MESI/MOESI) afectan el rendimiento de GEMM. | 2 | | | 2 | |
+| Configuración de gem5 | Configura gem5 en modo SE para ARMv8 + SVE: tipo de CPU (TimingSimple, Minor, O3), ancho, ROB, VL, jerarquía clásica o Ruby y número de núcleos. | 1 | | | 1 | |
+| Preparación del entorno | Compila gem5 (contenedor Docker con MESI_Two_Level y MOESI_CMP_directory) y cross-compila binarios AArch64 estáticos. | 1 | | | 1 | |
+| Ejecución de simulaciones | Ejecuta los barridos de E1–E5 y verifica que cada corrida termine con `stats.txt` válido. | 0 | | | 1 | |
+| Programación de cargas de trabajo (GEMM y SVE) | Escribe y valida GEMM (N = 64 y 128) escalar y con SVE, delimita la ROI con `m5_reset_stats()` y `m5_dump_stats()`, y prepara el microbenchmark de falso compartido. | 0 | | | 0 | |
+| Diseño experimental | Varía una variable a la vez (ancho, ROB, VL, núcleos, protocolo, relleno), justifica el barrido y respeta el límite de costo en E6. | 0 | | | 0 | |
+| Recolección de resultados | Extrae de `stats.txt` solo las métricas de la ROI y las organiza en CSV por experimento. | 0 | | | 0 | |
+| Análisis de métricas | Interpreta IPC, CPI, speedup, eficiencia, fallos de caché e invalidaciones, y explica las tendencias con conceptos de arquitectura y la ley de Amdahl. | 0 | | | 0 | |
+| Diagnóstico y resolución de problemas | Identifica y corrige fallos típicos: errores de build, instrucciones SVE no soportadas, estadísticas contaminadas por la inicialización, errores de Ruby. |0 | | | 0 | |
+| Reproducibilidad y gestión del trabajo | Mantiene repositorio Git, scripts y README de modo que un comando regenere CSV y gráficos de cada experimento. |2 | | | 2 | |
+| Colaboración y comunicación técnica | Lidera su experimento (E2–E5), cumple acuerdos, documenta en la bitácora y expone con dominio su parte del video. |2| | | 2 | |
 
 ### Escala
 
