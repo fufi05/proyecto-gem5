@@ -7,6 +7,7 @@ import csv
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
 import re
+import shlex
 import sys
 from tempfile import NamedTemporaryFile
 
@@ -34,6 +35,7 @@ SOURCE_FIELDS = {
 }
 MESI_ONLY = {"invalidaciones", "traspasos_linea_modificada"}
 CPU_SECTION = re.compile(r"system\.cpu\d*")
+BUILD_TRUE = {"true", "1", "y"}
 
 
 def read_stats(path, number):
@@ -64,6 +66,41 @@ def metric(stats, key, integer=True):
     if not number.is_finite() or number < 0 or (integer and number != int(number)):
         raise ValueError(f"valor inválido para {key}: {value}")
     return str(int(number)) if integer else value
+
+
+def review_build(build_path, command_path, expected_protocol):
+    if not build_path.is_file():
+        return "gem5_build_info.txt"
+
+    build = dict(re.findall(r"^[ \t]*(\w+)[ \t]*=[ \t]*(\S+)",
+                            build_path.read_text(encoding="utf-8"), re.M))
+    if "PROTOCOL" not in build or "USE_ARM_ISA" not in build:
+        return "confirmar ARM y protocolo en gem5_build_info.txt"
+    if build["USE_ARM_ISA"].lower() not in BUILD_TRUE:
+        raise ValueError(f"{build_path}: el build carece de soporte ARM")
+    protocol = build["PROTOCOL"]
+    if protocol != "MULTIPLE":
+        if protocol != expected_protocol:
+            raise ValueError(f"{build_path}: se esperaba {expected_protocol}, se encontró {protocol}")
+        return ""
+
+    enabled = build.get(f"RUBY_PROTOCOL_{expected_protocol}", "").lower()
+    if enabled not in BUILD_TRUE:
+        raise ValueError(f"{build_path}: el build MULTIPLE no declara soporte para {expected_protocol}")
+    if not command_path.is_file():
+        return ""
+
+    args = shlex.split(command_path.read_text(encoding="utf-8"))
+    selected = []
+    for index, arg in enumerate(args):
+        name, equals, value = arg.partition("=")
+        if name == "--protocol":
+            if not equals and index + 1 < len(args):
+                value = args[index + 1]
+            selected.append(value)
+    if selected != [expected_protocol]:
+        raise ValueError(f"{command_path}: se requiere una sola selección --protocol={expected_protocol}")
+    return ""
 
 
 def review_evidence(directory, row):
@@ -113,19 +150,11 @@ def review_evidence(directory, row):
     else:
         pending.append("config.ini")
 
-    build_path = directory / "gem5_build_info.txt"
-    if build_path.is_file():
-        build = build_path.read_text(encoding="utf-8")
-        protocol = re.search(r"^\s*PROTOCOL\s*=\s*(\S+)", build, re.M)
-        arm = re.search(r"^\s*USE_ARM_ISA\s*=\s*(\S+)", build, re.M)
-        if not protocol or not arm:
-            pending.append("confirmar ARM y protocolo en gem5_build_info.txt")
-        elif protocol[1] != row["protocolo"] or arm[1].lower() not in {"true", "1", "y"}:
-            raise ValueError(f"{build_path}: ISA o protocolo distinto al del plan")
-    else:
-        pending.append("gem5_build_info.txt")
-
-    if not (directory / "comando.txt").is_file():
+    command_path = directory / "comando.txt"
+    build_pending = review_build(directory / "gem5_build_info.txt", command_path, row["protocolo"])
+    if build_pending:
+        pending.append(build_pending)
+    if not command_path.is_file():
         pending.append("comando.txt")
     if row["benchmark"] == "gemm_paralelo":
         pending.append("validación numérica de GEMM")
