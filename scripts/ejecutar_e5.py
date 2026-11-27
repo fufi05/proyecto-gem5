@@ -12,6 +12,7 @@ import sys
 
 PROTOCOLS = ("MESI_Two_Level", "MOESI_CMP_directory")
 BENCHMARKS = ("false_sharing", "gemm_paralelo")
+BUILD_TRUE = {"true", "1", "y"}
 HERE = Path(__file__).resolve().parent
 REPO = HERE.parent
 
@@ -24,6 +25,7 @@ def plan(args):
     config = path_at(args.gem5_root, args.config)
     stats_paths = set()
     run_ids = set()
+    gemm_pilot_protocols = set()
     runs = []
 
     with args.csv.open(encoding="utf-8-sig", newline="") as stream:
@@ -52,7 +54,8 @@ def plan(args):
                 raise ValueError(f"{run_id}: se requiere un hilo por núcleo y líneas de 64 bytes")
 
             gem5_override = args.mesi if protocol == PROTOCOLS[0] else args.moesi
-            gem5 = path_at(args.gem5_root, gem5_override or row["binario_gem5_referencia"])
+            gem5 = path_at(args.gem5_root, gem5_override or args.gem5_all or row["binario_gem5_referencia"])
+            multiple_protocols = bool(args.gem5_all and not gem5_override)
             if benchmark == "false_sharing":
                 variant = row["variante"]
                 iterations = int(row["incrementos_por_hilo"])
@@ -67,6 +70,8 @@ def plan(args):
                 expected.extend(f"contador[{idx}]={iterations}" for idx in range(int(cores)))
                 expected.append("Verificación: OK")
             elif benchmark == "gemm_paralelo":
+                if args.piloto and protocol in gemm_pilot_protocols:
+                    continue
                 size = int(row["gemm_n"])
                 if size < 1:
                     raise ValueError(f"{run_id}: dimensión GEMM inválida")
@@ -74,6 +79,7 @@ def plan(args):
                 workload = path_at(args.trabajo, args.gemm or row["binario_benchmark_referencia"])
                 workload_args = f"{min(size, 16) if args.piloto else size} {cores}"
                 expected = []
+                gemm_pilot_protocols.add(protocol)
             else:
                 raise ValueError(f"{run_id}: benchmark desconocido: {benchmark}")
 
@@ -88,11 +94,16 @@ def plan(args):
                 raise ValueError(f"{run_id}: ruta de estadísticas repetida: {stats}")
             stats_paths.add(stats)
 
-            command = [
-                str(gem5), "-d", str(stats.parent), str(config), "-n", cores, "--ruby",
-                f"--cpu-type={row['modelo_cpu']}", "--cacheline_size", "64",
+            cpu = row["modelo_cpu"]
+            command = [str(gem5), "-d", str(stats.parent), str(config), "-n", cores, "--ruby"]
+            if multiple_protocols:
+                command.append(f"--protocol={protocol}")
+                if cpu == "TimingSimpleCPU":
+                    cpu = "ArmTimingSimpleCPU"
+            command.extend([
+                f"--cpu-type={cpu}", "--cacheline_size", "64",
                 "-c", str(workload), "-o", workload_args,
-            ]
+            ])
             runs.append((command, stats, workload, expected, protocol))
 
     unknown = set(args.corrida) - run_ids
@@ -109,9 +120,8 @@ def execute(config, runs, cwd):
     required_protocols = {}
     for command, stats, workload, _, protocol in runs:
         gem5 = Path(command[0])
-        if gem5 in required_protocols and required_protocols[gem5] != protocol:
-            raise ValueError(f"Se requieren builds con protocolos distintos: {gem5}")
-        required_protocols[gem5] = protocol
+        selects_protocol = f"--protocol={protocol}" in command
+        required_protocols.setdefault(gem5, set()).add((protocol, selects_protocol))
         for binary in (gem5, workload):
             if not binary.is_file() or not access(binary, X_OK):
                 missing.add(f"{binary} (ejecutable)")
@@ -123,7 +133,7 @@ def execute(config, runs, cwd):
         raise ValueError("\n".join(problems))
 
     build_info = {}
-    for gem5, protocol in required_protocols.items():
+    for gem5, requirements in required_protocols.items():
         result = subprocess.run([str(gem5), "--build-info"], cwd=cwd,
                                 capture_output=True, text=True)
         if result.returncode:
@@ -133,11 +143,15 @@ def execute(config, runs, cwd):
             key, separator, value = line.partition(" = ")
             if separator:
                 options[key.strip()] = value.strip()
-        if options.get("USE_ARM_ISA", "").lower() not in {"true", "1", "y"}:
+        if options.get("USE_ARM_ISA", "").lower() not in BUILD_TRUE:
             raise ValueError(f"{gem5} no indica soporte ARM en --build-info")
-        if options.get("PROTOCOL") != protocol:
-            found = options.get("PROTOCOL", "(sin identificar)")
-            raise ValueError(f"{gem5}: se esperaba {protocol}, se encontró {found}")
+        found = options.get("PROTOCOL", "(sin identificar)")
+        for protocol, selects_protocol in sorted(requirements):
+            expected = "MULTIPLE" if selects_protocol else protocol
+            if found != expected:
+                raise ValueError(f"{gem5}: se esperaba {expected}, se encontró {found}")
+            if selects_protocol and options.get(f"RUBY_PROTOCOL_{protocol}", "").lower() not in BUILD_TRUE:
+                raise ValueError(f"{gem5} no tiene habilitado {protocol}")
         build_info[str(gem5)] = result.stdout
 
     for command, stats, _, expected, _ in runs:
@@ -175,6 +189,8 @@ def main():
     parser.add_argument("--trabajo", type=Path, default=REPO,
                         help="Raíz del proyecto para rutas de binarios y resultados")
     parser.add_argument("--config", default="configs/deprecated/example/se.py")
+    parser.add_argument("--gem5-all", nargs="?", const="build/ALL/gem5.opt", metavar="RUTA",
+                        help="Build multiprotocolo (por defecto, build/ALL/gem5.opt dentro de GEM5_ROOT)")
     parser.add_argument("--mesi", help="Ruta alternativa a gem5 para MESI")
     parser.add_argument("--moesi", help="Ruta alternativa a gem5 para MOESI")
     parser.add_argument("--micro", help="Ruta alternativa al binario false_sharing")
