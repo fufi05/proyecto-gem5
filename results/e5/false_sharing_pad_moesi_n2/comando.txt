@@ -1,0 +1,1 @@
+/home/jorge/gem5/build/ALL/gem5.opt -d /home/jorge/proyecto-gem5/results/e5/false_sharing_pad_moesi_n2 /home/jorge/gem5/configs/deprecated/example/se.py -n 2 --ruby --protocol=MOESI_CMP_directory --cpu-type=ArmTimingSimpleCPU --cacheline_size 64 -c /home/jorge/proyecto-gem5/bin/false_sharing -o 2\ pad\ 100000 

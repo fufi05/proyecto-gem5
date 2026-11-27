@@ -1,0 +1,64 @@
+Build information:
+
+gem5 version 26.0.0.0
+compiled Nov 25 2026 22:01:01
+build options:
+    ARMLMD_LICENSE_COUNT = 0
+    ARMLMD_LICENSE_FILE = 
+    BATCH = False
+    BATCH_CMD = 
+    BUILD_GPU = True
+    BUILD_ISA = True
+    HAVE_CAPSTONE = False
+    HAVE_DEPRECATED_NAMESPACE = True
+    HAVE_FENV = True
+    HAVE_HDF5 = False
+    HAVE_KVM = True
+    HAVE_PERF_ATTR_EXCLUDE_HOST = 1
+    HAVE_PNG = False
+    HAVE_POSIX_CLOCK = True
+    HAVE_PROTOBUF = True
+    HAVE_SYSTEMC = True
+    HAVE_TUNTAP = True
+    HAVE_VALGRIND = False
+    HAVE_ZSTD = True
+    KVM_ISA = x86
+    M5_BUILD_CACHE = 
+    MAXCORE_HOME = 
+    NUMBER_BITS_PER_SET = 64
+    PROTOCOL = MULTIPLE
+    PVLIB_FLAVOR = 
+    PVLIB_HOME = 
+    RUBY = True
+    RUBY_PROTOCOL_CHI = True
+    RUBY_PROTOCOL_GPU_VIPER = True
+    RUBY_PROTOCOL_Garnet_standalone = True
+    RUBY_PROTOCOL_MESI_Three_Level = True
+    RUBY_PROTOCOL_MESI_Three_Level_HTM = True
+    RUBY_PROTOCOL_MESI_Two_Level = True
+    RUBY_PROTOCOL_MI_example = True
+    RUBY_PROTOCOL_MOESI_AMD_Base = True
+    RUBY_PROTOCOL_MOESI_CMP_directory = True
+    RUBY_PROTOCOL_MOESI_CMP_token = True
+    RUBY_PROTOCOL_MOESI_hammer = True
+    RUBY_PROTOCOL_MSI = True
+    SIMGEN = 
+    SLICC_HTML = False
+    TARGET_GPU_ISA = vega
+    TLM_PATH = 
+    USE_ARM_FASTMODEL = False
+    USE_ARM_ISA = True
+    USE_CAPSTONE = False
+    USE_EFENCE = False
+    USE_KVM = True
+    USE_MIPS_ISA = True
+    USE_MULTIPLE_PROTOCOLS = True
+    USE_POSIX_CLOCK = False
+    USE_POWER_ISA = True
+    USE_RISCV_ISA = True
+    USE_SPARC_ISA = True
+    USE_SYSTEMC = True
+    USE_TEST_OBJECTS = True
+    USE_X86_ISA = True
+    VEGA_GPU_ISA = True
+
