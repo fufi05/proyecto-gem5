@@ -23,8 +23,8 @@ Cada integrante se califica de forma individual con la escala al final. En "Evid
 | Recolección de resultados | Extrae de `stats.txt` solo las métricas de la ROI y las organiza en CSV por experimento. | 0 | | | | |
 | Análisis de métricas | Interpreta IPC, CPI, speedup, eficiencia, fallos de caché e invalidaciones, y explica las tendencias con conceptos de arquitectura y la ley de Amdahl. | 0 | | | | |
 | Diagnóstico y resolución de problemas | Identifica y corrige fallos típicos: errores de build, instrucciones SVE no soportadas, estadísticas contaminadas por la inicialización, errores de Ruby. |0 | | | | |
-| Reproducibilidad y gestión del trabajo | Mantiene repositorio Git, scripts y README de modo que un comando regenere CSV y gráficos de cada experimento. |2 | | | | |
-| Colaboración y comunicación técnica | Lidera su experimento (E2–E5), cumple acuerdos, documenta en la bitácora y expone con dominio su parte del video. |2| | | | |
+| Reproducibilidad y gestión del trabajo | Mantiene repositorio Git, scripts y README de modo que un comando regenere CSV y gráficos de cada experimento. |2 |3| | | |
+| Colaboración y comunicación técnica | Lidera su experimento (E2–E5), cumple acuerdos, documenta en la bitácora y expone con dominio su parte del video. |2|3| | | |
 
 ### Escala
 
